@@ -87,6 +87,13 @@
   .selfgrade .g-mid { background: #d97706; }
   .clabel { font-size: 13px; color: var(--sub); margin: 14px 0 6px; font-weight: 700; }
 
+  /* start options */
+  .segrow { display: flex; gap: 8px; margin-bottom: 4px; }
+  .segrow .seg { flex: 1; padding: 12px 6px; border-radius: 10px; border: 1.5px solid var(--line);
+                 background: #fff; font-size: 14px; font-weight: 700; color: var(--sub); }
+  .segrow .seg.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .segrow .seg:disabled { opacity: .4; }
+
   .answerbox { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
   .answerbox .a { font-weight: 700; }
   .explain { color: var(--sub); font-size: 14px; margin-top: 8px; }
@@ -114,6 +121,11 @@
     <div id="topicList"></div>
   </section>
 
+  <!-- START OPTIONS -->
+  <section id="start" class="hidden">
+    <div id="startBody"></div>
+  </section>
+
   <!-- QUIZ -->
   <section id="quiz" class="hidden">
     <div class="progress" id="progText"></div>
@@ -136,7 +148,23 @@
 <script src="config.js"></script>
 <script>
 const $ = s => document.querySelector(s);
-const state = { topics: [], topic: null, mode: 'all', questions: [], idx: 0, correct: 0, review: [] };
+const state = { topics: [], topic: null, mode: 'all', range: 'all', count: 'all', screen: 'home',
+                allQuestions: [], questions: [], idx: 0, correct: 0, review: [] };
+
+// ---------- 弱点セット（端末に保存） ----------
+function hashId(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; } return 'q' + (h >>> 0).toString(36); }
+function weakKey(tid) { return 'weak_' + tid; }
+function getWeak(tid) { try { return JSON.parse(localStorage.getItem(weakKey(tid))) || []; } catch { return []; } }
+function saveWeak(tid, arr) { localStorage.setItem(weakKey(tid), JSON.stringify(arr)); }
+function markWeak(tid, q, isWeak) {
+  const id = hashId(q.q);
+  let arr = getWeak(tid);
+  const has = arr.includes(id);
+  if (isWeak && !has) arr.push(id);
+  if (!isWeak && has) arr = arr.filter(x => x !== id);
+  saveWeak(tid, arr);
+}
+function weakCount(t, questions) { const w = getWeak(t.id); return questions.filter(q => w.includes(hashId(q.q))).length; }
 
 // ---------- HOME ----------
 async function loadTopics() {
@@ -161,7 +189,9 @@ function renderHome() {
   $('#backBtn').classList.add('hidden');
   const html = state.topics.map(t => {
     const ls = lastScore(t.id);
-    const meta = ls ? `前回: ${ls.correct}/${ls.total}（${new Date(ls.date).toLocaleDateString('ja-JP')}）` : '未受験';
+    const wn = getWeak(t.id).length;
+    let meta = ls ? `前回: ${ls.correct}/${ls.total}（${new Date(ls.date).toLocaleDateString('ja-JP')}）` : '未受験';
+    if (wn) meta += ` ・ 弱点${wn}`;
     const flag = t.provisional ? '<span class="flag">※仮作成（要・正式ページ）</span>' : '';
     return `<button class="topic" data-id="${t.id}">${t.title}${flag ? ' ' + flag : ''}
       <span class="meta">${t.count}問 ・ ${meta}</span></button>`;
@@ -172,27 +202,75 @@ function renderHome() {
   show('home');
 }
 
-// ---------- START QUIZ ----------
+// ---------- START (出題設定) ----------
 async function openTopic(id) {
   const t = state.topics.find(x => x.id === id);
   state.topic = t;
   const res = await fetch('topics/' + t.file + '?_=' + Date.now());
   state.allQuestions = (await res.json()).questions;
-  state.mode = 'all';
-  startQuiz();
+  renderStart();
+}
+
+function renderStart() {
+  const t = state.topic;
+  const total = state.allQuestions.length;
+  const wN = weakCount(t, state.allQuestions);
+  state.range = 'all'; state.mode = 'all'; state.count = 'all';
+  $('#appTitle').textContent = t.title;
+  $('#backBtn').classList.remove('hidden');
+  $('#startBody').innerHTML = `
+    <h2>${t.title}</h2>
+    <div class="clabel">出題範囲</div>
+    <div class="segrow" data-seg="range">
+      <button data-v="all" class="seg on">全問（${total}）</button>
+      <button data-v="weak" class="seg" ${wN ? '' : 'disabled'}>弱点だけ（${wN}）</button>
+    </div>
+    <div class="clabel">形式</div>
+    <div class="segrow" data-seg="mode">
+      <button data-v="all" class="seg on">全部</button>
+      <button data-v="mc" class="seg">4択</button>
+      <button data-v="qa" class="seg">一問一答</button>
+    </div>
+    <div class="clabel">問題数</div>
+    <div class="segrow" data-seg="count">
+      <button data-v="5" class="seg">5問</button>
+      <button data-v="10" class="seg">10問</button>
+      <button data-v="all" class="seg on">すべて</button>
+    </div>
+    <button class="btn" id="startGo" style="margin-top:22px">はじめる</button>`;
+  wireSeg('range', v => state.range = v);
+  wireSeg('mode', v => state.mode = v);
+  wireSeg('count', v => state.count = v);
+  $('#startGo').addEventListener('click', startQuiz);
+  show('start');
+}
+
+function wireSeg(name, cb) {
+  const row = document.querySelector(`[data-seg="${name}"]`);
+  row.querySelectorAll('.seg').forEach(b => b.addEventListener('click', () => {
+    if (b.disabled) return;
+    row.querySelectorAll('.seg').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    cb(b.dataset.v);
+  }));
 }
 
 function filterQuestions() {
   let qs = state.allQuestions.slice();
+  if (state.range === 'weak') { const w = getWeak(state.topic.id); qs = qs.filter(q => w.includes(hashId(q.q))); }
   if (state.mode === 'mc') qs = qs.filter(q => q.type === 'mc');
   if (state.mode === 'qa') qs = qs.filter(q => q.type === 'qa');
   // shuffle
   for (let i = qs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [qs[i], qs[j]] = [qs[j], qs[i]]; }
+  // 出題数を絞る
+  const n = parseInt(state.count);
+  if (!isNaN(n)) qs = qs.slice(0, n);
   return qs;
 }
 
 function startQuiz() {
   state.questions = filterQuestions();
+  if (state.questions.length === 0) { alert('該当する問題がありません。範囲・形式を変えてください。'); return; }
   state.idx = 0; state.correct = 0; state.review = [];
   $('#appTitle').textContent = state.topic.title;
   $('#backBtn').classList.remove('hidden');
@@ -207,16 +285,8 @@ function renderQuestion() {
   $('#progText').textContent = `第 ${state.idx + 1} 問 / ${n} 問`;
   $('#progBar').style.width = ((state.idx) / n * 100) + '%';
 
-  // mode bar only on first question
-  const modeBar = state.idx === 0 ? `
-    <div class="modebar">
-      <button data-m="all" class="${state.mode==='all'?'on':''}">全問</button>
-      <button data-m="mc" class="${state.mode==='mc'?'on':''}">4択のみ</button>
-      <button data-m="qa" class="${state.mode==='qa'?'on':''}">一問一答</button>
-    </div>` : '';
-
   const typeLabel = q.type === 'mc' ? '4択問題' : '一問一答';
-  let body = `${modeBar}<span class="qtype">${typeLabel}</span><div class="qtext">${q.q}</div>`;
+  let body = `<span class="qtype">${typeLabel}</span><div class="qtext">${q.q}</div>`;
 
   if (q.type === 'mc') {
     body += q.choices.map((c, i) => `<button class="choice" data-i="${i}">${c}</button>`).join('');
@@ -224,9 +294,6 @@ function renderQuestion() {
     body += `<button class="reveal-btn" id="revealBtn">答えを見る</button><div id="qaAns"></div>`;
   }
   $('#qArea').innerHTML = body;
-
-  document.querySelectorAll('.modebar button').forEach(b =>
-    b.addEventListener('click', () => { state.mode = b.dataset.m; startQuiz(); }));
 
   if (q.type === 'mc') {
     document.querySelectorAll('.choice').forEach(b =>
@@ -258,13 +325,14 @@ function answerMc(i) {
       </div>`;
   } else {
     state.review.push({ question: q, reason: 'wrong' });
+    markWeak(state.topic.id, q, true);
     action = `<button class="btn" id="nextBtn">${nextLabel}</button>`;
   }
   $('#qArea').insertAdjacentHTML('beforeend',
     `<div class="answerbox"><div class="a">${ok ? '⭕️ 正解' : '❌ 不正解'}</div>${exp}</div>${action}`);
   if (ok) {
-    $('#cSure').addEventListener('click', next);
-    $('#cUnsure').addEventListener('click', () => { state.review.push({ question: q, reason: 'unsure' }); next(); });
+    $('#cSure').addEventListener('click', () => { markWeak(state.topic.id, q, false); next(); });
+    $('#cUnsure').addEventListener('click', () => { state.review.push({ question: q, reason: 'unsure' }); markWeak(state.topic.id, q, true); next(); });
   } else {
     $('#nextBtn').addEventListener('click', next);
   }
@@ -281,9 +349,9 @@ function revealQa() {
       <button class="g-ok" id="gOk">⭕️ わかった</button>
     </div>`;
   $('#revealBtn').disabled = true;
-  $('#gOk').addEventListener('click', () => { state.correct++; next(); });
-  $('#gMid').addEventListener('click', () => { state.review.push({ question: q, reason: 'unsure' }); next(); });
-  $('#gNg').addEventListener('click', () => { state.review.push({ question: q, reason: 'wrong' }); next(); });
+  $('#gOk').addEventListener('click', () => { state.correct++; markWeak(state.topic.id, q, false); next(); });
+  $('#gMid').addEventListener('click', () => { state.review.push({ question: q, reason: 'unsure' }); markWeak(state.topic.id, q, true); next(); });
+  $('#gNg').addEventListener('click', () => { state.review.push({ question: q, reason: 'wrong' }); markWeak(state.topic.id, q, true); next(); });
 }
 
 function next() {
@@ -349,12 +417,17 @@ function sendResult(c, total) {
 
 // ---------- NAV ----------
 function show(id) {
-  ['home', 'quiz', 'result'].forEach(s => $('#' + s).classList.toggle('hidden', s !== id));
+  state.screen = id;
+  ['home', 'start', 'quiz', 'result'].forEach(s => $('#' + s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
+}
+function goBack() {
+  if (state.screen === 'quiz') renderStart();
+  else renderHome();
 }
 $('#retryBtn').addEventListener('click', startQuiz);
 $('#homeBtn').addEventListener('click', renderHome);
-$('#backBtn').addEventListener('click', renderHome);
+$('#backBtn').addEventListener('click', goBack);
 
 loadTopics();
 </script>

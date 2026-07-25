@@ -1,6 +1,7 @@
 {
   "id": "dka",
   "title": "DKA（糖尿病性ケトアシドーシス）",
+  "provisional": false,
   "source": "Notion学習ページ（MSD／StatPearls／医学書院で裏取り）",
   "questions": [
     {

@@ -1,6 +1,7 @@
 {
   "id": "hhs",
   "title": "HHS（高浸透圧高血糖状態）",
+  "provisional": true,
   "source": "※仮作成：標準的な医学知識ベース（正式なNotion学習ページは未作成）",
   "questions": [
     {

@@ -10,9 +10,25 @@
 - `topics/*.json` … トピックごとの問題データ
 - `apps-script/` … 結果をスプレッドシートに記録する Google Apps Script とセットアップ手順
 
-## トピックの追加
-1. `topics/<id>.json` を作成（既存ファイルと同じ形式）
-2. `topics/index.json` に1行追加
+## トピックの追加（かんたん）
+1. `topics/<id>.json` を作成（既存ファイルと同じ形式。`id` / `title` / `provisional` / `questions` を含める）
+2. `python3 build_index.py` を実行 → `topics/index.json` が自動生成される（手で編集不要）
+3. commit して push すれば公開版に反映される
+
+### 問題データの形式
+```json
+{
+  "id": "topicのID",
+  "title": "画面に出す名前",
+  "provisional": false,   // 仮作成なら true（一覧に「※仮作成」と表示）
+  "questions": [
+    { "type": "mc", "q": "問題文", "choices": ["A","B","C","D"], "answer": 0, "explain": "解説" },
+    { "type": "qa", "q": "問題文", "answer": "答え", "explain": "解説" }
+  ]
+}
+```
+- `type` は `mc`（4択）か `qa`（一問一答）
+- `mc` の `answer` は正解の選択肢の番号（0始まり）
 
 ## 結果の自動記録
 `apps-script/SETUP.md` を参照。

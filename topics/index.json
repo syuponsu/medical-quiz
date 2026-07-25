@@ -1,6 +1,18 @@
 {
   "topics": [
-    { "id": "dka", "title": "DKA（糖尿病性ケトアシドーシス）", "file": "dka.json", "count": 12, "provisional": false },
-    { "id": "hhs", "title": "HHS（高浸透圧高血糖状態）", "file": "hhs.json", "count": 10, "provisional": true }
+    {
+      "id": "dka",
+      "title": "DKA（糖尿病性ケトアシドーシス）",
+      "file": "dka.json",
+      "count": 12,
+      "provisional": false
+    },
+    {
+      "id": "hhs",
+      "title": "HHS（高浸透圧高血糖状態）",
+      "file": "hhs.json",
+      "count": 10,
+      "provisional": true
+    }
   ]
 }
