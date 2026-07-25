@@ -400,7 +400,8 @@ function sendResult(c, total) {
     mode: state.mode,
     correct: c,
     total: total,
-    wrong: state.review.map(r => (r.reason === 'wrong' ? '❌ ' : '🤔 ') + r.question.q)
+    wrong: state.review.map(r => (r.reason === 'wrong' ? '❌ ' : '🤔 ') + r.question.q),
+    state: { weak: getWeak(state.topic.id), last: { correct: c, total: total, date: Date.now() } }
   };
   if (statusEl) statusEl.textContent = '結果を記録中…';
   fetch(endpoint, {
@@ -429,7 +430,35 @@ $('#retryBtn').addEventListener('click', startQuiz);
 $('#homeBtn').addEventListener('click', renderHome);
 $('#backBtn').addEventListener('click', goBack);
 
-loadTopics();
+// クラウド（スプレッドシート）から状態を読み込み、端末間で共有する
+function loadCloudState() {
+  return new Promise(resolve => {
+    if (!window.RESULTS_ENDPOINT) return resolve();
+    const cbName = 'cb_' + Date.now();
+    const timer = setTimeout(() => { cleanup(); resolve(); }, 6000);
+    function cleanup() { clearTimeout(timer); delete window[cbName]; if (sc.parentNode) sc.parentNode.removeChild(sc); }
+    window[cbName] = data => {
+      try {
+        Object.keys(data || {}).forEach(tid => {
+          const s = data[tid] || {};
+          if (Array.isArray(s.weak)) saveWeak(tid, s.weak);
+          if (s.last) localStorage.setItem('quiz_' + tid, JSON.stringify(s.last));
+        });
+      } catch (e) {}
+      cleanup(); resolve();
+    };
+    const sc = document.createElement('script');
+    sc.src = window.RESULTS_ENDPOINT + '?callback=' + cbName + '&_=' + Date.now();
+    sc.onerror = () => { cleanup(); resolve(); };
+    document.body.appendChild(sc);
+  });
+}
+
+(async function init() {
+  $('#topicList').innerHTML = '<p class="muted">同期中…</p>';
+  await loadCloudState();
+  loadTopics();
+})();
 </script>
 </body>
 </html>
