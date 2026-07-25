@@ -5,14 +5,43 @@
       "title": "DKA（糖尿病性ケトアシドーシス）",
       "file": "dka.json",
       "count": 12,
-      "provisional": false
+      "provisional": false,
+      "category": "内分泌・代謝",
+      "tags": [
+        "DKA",
+        "糖尿病",
+        "ケトアシドーシス",
+        "ケトン",
+        "インスリン",
+        "アシドーシス",
+        "高血糖",
+        "アニオンギャップ",
+        "カリウム",
+        "内分泌",
+        "代謝"
+      ]
     },
     {
       "id": "lowna",
       "title": "低ナトリウム血症の補正",
       "file": "lowna.json",
       "count": 13,
-      "provisional": false
+      "provisional": false,
+      "category": "内分泌・代謝",
+      "tags": [
+        "低ナトリウム",
+        "低Na",
+        "ナトリウム",
+        "Na",
+        "ODS",
+        "浸透圧性脱髄",
+        "橋中心髄鞘崩壊",
+        "SIADH",
+        "電解質",
+        "補正速度",
+        "内分泌",
+        "代謝"
+      ]
     }
   ]
 }

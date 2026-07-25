@@ -20,13 +20,16 @@
 {
   "id": "topicのID",
   "title": "画面に出す名前",
-  "provisional": false,   // 仮作成なら true（一覧に「※仮作成」と表示）
+  "provisional": false,        // 仮作成なら true（一覧に「※仮作成」と表示）
+  "category": "内分泌・代謝",   // 分野（Notionの「領域」に対応）。検索対象
+  "tags": ["Na", "ODS", "SIADH"], // 関連キーワード。検索でヒットしやすくする
   "questions": [
     { "type": "mc", "q": "問題文", "choices": ["A","B","C","D"], "answer": 0, "explain": "解説" },
     { "type": "qa", "q": "問題文", "answer": "答え", "explain": "解説" }
   ]
 }
 ```
+- `category` / `tags` は検索の対象になる（トピック名に無い語でも見つかる）
 - `type` は `mc`（4択）か `qa`（一問一答）
 - `mc` の `answer` は正解の選択肢の番号（0始まり）
 

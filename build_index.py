@@ -29,6 +29,8 @@ def main():
             "file": name,
             "count": len(data.get("questions", [])),
             "provisional": data.get("provisional", False),
+            "category": data.get("category", ""),
+            "tags": data.get("tags", []),
         })
 
     out = os.path.join(TDIR, "index.json")
