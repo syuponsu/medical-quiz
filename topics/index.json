@@ -1,6 +1,31 @@
 {
   "topics": [
     {
+      "id": "co2narcosis",
+      "title": "CO2ナルコーシス",
+      "file": "co2narcosis.json",
+      "count": 14,
+      "provisional": false,
+      "category": "呼吸器",
+      "tags": [
+        "CO2ナルコーシス",
+        "二酸化炭素",
+        "高炭酸ガス血症",
+        "hypercapnia",
+        "COPD",
+        "呼吸性アシドーシス",
+        "酸素投与",
+        "SpO2",
+        "低酸素ドライブ",
+        "hypoxic drive",
+        "Haldane効果",
+        "ベンチュリーマスク",
+        "NPPV",
+        "II型呼吸不全",
+        "呼吸器"
+      ]
+    },
+    {
       "id": "dka",
       "title": "DKA（糖尿病性ケトアシドーシス）",
       "file": "dka.json",
