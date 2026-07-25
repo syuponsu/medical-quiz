@@ -8,11 +8,11 @@
       "provisional": false
     },
     {
-      "id": "hhs",
-      "title": "HHS（高浸透圧高血糖状態）",
-      "file": "hhs.json",
-      "count": 10,
-      "provisional": true
+      "id": "lowna",
+      "title": "低ナトリウム血症の補正",
+      "file": "lowna.json",
+      "count": 13,
+      "provisional": false
     }
   ]
 }
