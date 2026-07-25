@@ -81,8 +81,11 @@
   .btn.ghost { background: #fff; color: var(--brand-dark); border: 1.5px solid var(--brand); }
   .selfgrade { display: flex; gap: 10px; margin-top: 12px; }
   .selfgrade button { flex: 1; padding: 14px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; color: #fff; }
+  .selfgrade.selfgrade3 button { font-size: 14px; padding: 14px 6px; }
   .selfgrade .g-ok { background: var(--ok); }
   .selfgrade .g-ng { background: var(--ng); }
+  .selfgrade .g-mid { background: #d97706; }
+  .clabel { font-size: 13px; color: var(--sub); margin: 14px 0 6px; font-weight: 700; }
 
   .answerbox { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
   .answerbox .a { font-weight: 700; }
@@ -133,7 +136,7 @@
 <script src="config.js"></script>
 <script>
 const $ = s => document.querySelector(s);
-const state = { topics: [], topic: null, mode: 'all', questions: [], idx: 0, correct: 0, wrong: [] };
+const state = { topics: [], topic: null, mode: 'all', questions: [], idx: 0, correct: 0, review: [] };
 
 // ---------- HOME ----------
 async function loadTopics() {
@@ -190,7 +193,7 @@ function filterQuestions() {
 
 function startQuiz() {
   state.questions = filterQuestions();
-  state.idx = 0; state.correct = 0; state.wrong = [];
+  state.idx = 0; state.correct = 0; state.review = [];
   $('#appTitle').textContent = state.topic.title;
   $('#backBtn').classList.remove('hidden');
   renderQuestion();
@@ -242,25 +245,45 @@ function answerMc(i) {
     if (bi === i && i !== q.answer) b.classList.add('wrong');
   });
   const ok = i === q.answer;
-  if (ok) state.correct++; else state.wrong.push(q);
+  if (ok) state.correct++;
   const exp = q.explain ? `<div class="explain">${q.explain}</div>` : '';
+  const nextLabel = state.idx + 1 < state.questions.length ? '次へ' : '結果を見る';
+  let action;
+  if (ok) {
+    // 正解でも「迷った」を選べば要復習に入れる
+    action = `<div class="clabel">手応えは？</div>
+      <div class="selfgrade">
+        <button class="g-ng" id="cUnsure">🤔 迷った・勘</button>
+        <button class="g-ok" id="cSure">💪 自信あり（${nextLabel}）</button>
+      </div>`;
+  } else {
+    state.review.push({ question: q, reason: 'wrong' });
+    action = `<button class="btn" id="nextBtn">${nextLabel}</button>`;
+  }
   $('#qArea').insertAdjacentHTML('beforeend',
-    `<div class="answerbox"><div class="a">${ok ? '⭕️ 正解' : '❌ 不正解'}</div>${exp}</div>
-     <button class="btn" id="nextBtn">${state.idx + 1 < state.questions.length ? '次へ' : '結果を見る'}</button>`);
-  $('#nextBtn').addEventListener('click', next);
+    `<div class="answerbox"><div class="a">${ok ? '⭕️ 正解' : '❌ 不正解'}</div>${exp}</div>${action}`);
+  if (ok) {
+    $('#cSure').addEventListener('click', next);
+    $('#cUnsure').addEventListener('click', () => { state.review.push({ question: q, reason: 'unsure' }); next(); });
+  } else {
+    $('#nextBtn').addEventListener('click', next);
+  }
 }
 
 function revealQa() {
   const q = state.questions[state.idx];
   const exp = q.explain ? `<div class="explain">${q.explain}</div>` : '';
   $('#qaAns').innerHTML = `<div class="answerbox"><div class="a">${q.answer}</div>${exp}</div>
-    <div class="selfgrade">
-      <button class="g-ng" id="gNg">わからなかった</button>
-      <button class="g-ok" id="gOk">わかった</button>
+    <div class="clabel">自己採点：</div>
+    <div class="selfgrade selfgrade3">
+      <button class="g-ng" id="gNg">❌ できなかった</button>
+      <button class="g-mid" id="gMid">🤔 あいまい</button>
+      <button class="g-ok" id="gOk">⭕️ わかった</button>
     </div>`;
   $('#revealBtn').disabled = true;
   $('#gOk').addEventListener('click', () => { state.correct++; next(); });
-  $('#gNg').addEventListener('click', () => { state.wrong.push(q); next(); });
+  $('#gMid').addEventListener('click', () => { state.review.push({ question: q, reason: 'unsure' }); next(); });
+  $('#gNg').addEventListener('click', () => { state.review.push({ question: q, reason: 'wrong' }); next(); });
 }
 
 function next() {
@@ -282,12 +305,18 @@ function finish() {
     JSON.stringify({ correct: c, total, date: Date.now() }));
   // send (スプレッドシートへ自動記録)
   sendResult(c, total);
-  // wrong list
-  if (state.wrong.length) {
-    $('#wrongList').innerHTML = '<h2>復習（間違い・わからなかった問題）</h2>' +
-      state.wrong.map(q => `<div class="item">${q.q}<div class="a">→ ${q.type === 'mc' ? q.choices[q.answer] : q.answer}</div></div>`).join('');
+  // 要復習リスト（間違い＋迷った/あいまい）
+  if (state.review.length) {
+    $('#wrongList').innerHTML = '<h2>要復習リスト</h2>' +
+      '<p class="muted" style="font-size:13px">❌＝間違い ／ 🤔＝正解だが迷った・あいまい</p>' +
+      state.review.map(r => {
+        const q = r.question;
+        const ans = q.type === 'mc' ? q.choices[q.answer] : q.answer;
+        const tag = r.reason === 'wrong' ? '❌' : '🤔';
+        return `<div class="item">${tag} ${q.q}<div class="a">→ ${ans}</div></div>`;
+      }).join('');
   } else {
-    $('#wrongList').innerHTML = '<p class="muted" style="text-align:center">全問正解！🎉</p>';
+    $('#wrongList').innerHTML = '<p class="muted" style="text-align:center">要復習なし！完璧です🎉</p>';
   }
   $('#backBtn').classList.add('hidden');
   show('result');
@@ -303,7 +332,7 @@ function sendResult(c, total) {
     mode: state.mode,
     correct: c,
     total: total,
-    wrong: state.wrong.map(q => q.q)
+    wrong: state.review.map(r => (r.reason === 'wrong' ? '❌ ' : '🤔 ') + r.question.q)
   };
   if (statusEl) statusEl.textContent = '結果を記録中…';
   fetch(endpoint, {
