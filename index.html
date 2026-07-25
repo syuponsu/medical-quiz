@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d9488">
+<title>看護クイズ</title>
+<style>
+  :root {
+    --bg: #f5f5f4;
+    --card: #ffffff;
+    --ink: #1c1917;
+    --sub: #78716c;
+    --brand: #0d9488;
+    --brand-dark: #0f766e;
+    --ok: #16a34a;
+    --ng: #dc2626;
+    --line: #e7e5e4;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px 16px 64px; }
+  header.app {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--brand); color: #fff;
+    padding: 14px 16px; font-weight: 700; font-size: 18px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  header.app .back {
+    background: rgba(255,255,255,.2); border: none; color: #fff;
+    border-radius: 8px; padding: 4px 10px; font-size: 14px; font-weight: 700;
+  }
+  h2 { font-size: 20px; margin: 8px 0 16px; }
+  .muted { color: var(--sub); font-size: 14px; }
+
+  /* topic list */
+  .topic {
+    display: block; width: 100%; text-align: left;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px; margin-bottom: 12px;
+    font-size: 17px; font-weight: 700; color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .topic .meta { font-size: 13px; font-weight: 500; color: var(--sub); margin-top: 4px; }
+  .topic .flag { color: #b45309; font-weight: 600; }
+
+  .modebar { display: flex; gap: 8px; margin-bottom: 16px; }
+  .modebar button {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: #fff; font-size: 14px; font-weight: 700; color: var(--sub);
+  }
+  .modebar button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  /* quiz */
+  .progress { font-size: 13px; color: var(--sub); margin-bottom: 8px; }
+  .bar { height: 6px; background: var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 20px; }
+  .bar > i { display: block; height: 100%; background: var(--brand); transition: width .3s; }
+  .qtype { display: inline-block; font-size: 12px; font-weight: 700; color: var(--brand-dark);
+           background: #ccfbf1; border-radius: 6px; padding: 2px 8px; margin-bottom: 10px; }
+  .qtext { font-size: 19px; font-weight: 700; margin-bottom: 20px; }
+  .choice {
+    display: block; width: 100%; text-align: left; background: var(--card);
+    border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px;
+    margin-bottom: 10px; font-size: 16px; color: var(--ink);
+  }
+  .choice.correct { border-color: var(--ok); background: #f0fdf4; }
+  .choice.wrong { border-color: var(--ng); background: #fef2f2; }
+  .choice:disabled { opacity: 1; }
+
+  .reveal-btn, .btn {
+    display: block; width: 100%; padding: 15px; border: none; border-radius: 12px;
+    background: var(--brand); color: #fff; font-size: 16px; font-weight: 700; margin-top: 8px;
+  }
+  .btn.ghost { background: #fff; color: var(--brand-dark); border: 1.5px solid var(--brand); }
+  .selfgrade { display: flex; gap: 10px; margin-top: 12px; }
+  .selfgrade button { flex: 1; padding: 14px; border-radius: 12px; border: none; font-size: 16px; font-weight: 700; color: #fff; }
+  .selfgrade .g-ok { background: var(--ok); }
+  .selfgrade .g-ng { background: var(--ng); }
+
+  .answerbox { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
+  .answerbox .a { font-weight: 700; }
+  .explain { color: var(--sub); font-size: 14px; margin-top: 8px; }
+
+  /* result */
+  .score { font-size: 44px; font-weight: 800; color: var(--brand); text-align: center; margin: 12px 0 4px; }
+  .score small { font-size: 18px; color: var(--sub); font-weight: 700; }
+  .wronglist { margin-top: 20px; }
+  .wronglist .item { background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--ng);
+                     border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; font-size: 15px; }
+  .wronglist .item .a { color: var(--sub); font-size: 13px; margin-top: 4px; }
+  .hidden { display: none; }
+  .err { background: #fef2f2; color: var(--ng); padding: 14px; border-radius: 10px; }
+</style>
+</head>
+<body>
+<header class="app">
+  <button class="back hidden" id="backBtn">← 戻る</button>
+  <span id="appTitle">看護クイズ</span>
+</header>
+<div class="wrap">
+  <!-- HOME -->
+  <section id="home">
+    <p class="muted">今日勉強したいトピックを1つ選んでください。</p>
+    <div id="topicList"></div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" class="hidden">
+    <div class="progress" id="progText"></div>
+    <div class="bar"><i id="progBar"></i></div>
+    <div id="qArea"></div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result" class="hidden">
+    <h2 id="resTitle"></h2>
+    <div class="score" id="scoreText"></div>
+    <p class="muted" style="text-align:center" id="scoreSub"></p>
+    <p class="muted" style="text-align:center; font-size:13px" id="logStatus"></p>
+    <button class="btn" id="retryBtn">もう一度</button>
+    <button class="btn ghost" id="homeBtn" style="margin-top:10px">トピック選択へ戻る</button>
+    <div class="wronglist" id="wrongList"></div>
+  </section>
+</div>
+
+<script src="config.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const state = { topics: [], topic: null, mode: 'all', questions: [], idx: 0, correct: 0, wrong: [] };
+
+// ---------- HOME ----------
+async function loadTopics() {
+  try {
+    const res = await fetch('topics/index.json?_=' + Date.now());
+    const data = await res.json();
+    state.topics = data.topics;
+    renderHome();
+  } catch (e) {
+    $('#topicList').innerHTML = '<div class="err">トピック一覧を読み込めませんでした。ローカルで開く場合はサーバー経由（例: python3 -m http.server）で開いてください。</div>';
+  }
+}
+
+function lastScore(id) {
+  const raw = localStorage.getItem('quiz_' + id);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+function renderHome() {
+  $('#appTitle').textContent = '看護クイズ';
+  $('#backBtn').classList.add('hidden');
+  const html = state.topics.map(t => {
+    const ls = lastScore(t.id);
+    const meta = ls ? `前回: ${ls.correct}/${ls.total}（${new Date(ls.date).toLocaleDateString('ja-JP')}）` : '未受験';
+    const flag = t.provisional ? '<span class="flag">※仮作成（要・正式ページ）</span>' : '';
+    return `<button class="topic" data-id="${t.id}">${t.title}${flag ? ' ' + flag : ''}
+      <span class="meta">${t.count}問 ・ ${meta}</span></button>`;
+  }).join('');
+  $('#topicList').innerHTML = html;
+  document.querySelectorAll('.topic').forEach(b =>
+    b.addEventListener('click', () => openTopic(b.dataset.id)));
+  show('home');
+}
+
+// ---------- START QUIZ ----------
+async function openTopic(id) {
+  const t = state.topics.find(x => x.id === id);
+  state.topic = t;
+  const res = await fetch('topics/' + t.file + '?_=' + Date.now());
+  state.allQuestions = (await res.json()).questions;
+  state.mode = 'all';
+  startQuiz();
+}
+
+function filterQuestions() {
+  let qs = state.allQuestions.slice();
+  if (state.mode === 'mc') qs = qs.filter(q => q.type === 'mc');
+  if (state.mode === 'qa') qs = qs.filter(q => q.type === 'qa');
+  // shuffle
+  for (let i = qs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [qs[i], qs[j]] = [qs[j], qs[i]]; }
+  return qs;
+}
+
+function startQuiz() {
+  state.questions = filterQuestions();
+  state.idx = 0; state.correct = 0; state.wrong = [];
+  $('#appTitle').textContent = state.topic.title;
+  $('#backBtn').classList.remove('hidden');
+  renderQuestion();
+  show('quiz');
+}
+
+// ---------- QUESTION ----------
+function renderQuestion() {
+  const q = state.questions[state.idx];
+  const n = state.questions.length;
+  $('#progText').textContent = `第 ${state.idx + 1} 問 / ${n} 問`;
+  $('#progBar').style.width = ((state.idx) / n * 100) + '%';
+
+  // mode bar only on first question
+  const modeBar = state.idx === 0 ? `
+    <div class="modebar">
+      <button data-m="all" class="${state.mode==='all'?'on':''}">全問</button>
+      <button data-m="mc" class="${state.mode==='mc'?'on':''}">4択のみ</button>
+      <button data-m="qa" class="${state.mode==='qa'?'on':''}">一問一答</button>
+    </div>` : '';
+
+  const typeLabel = q.type === 'mc' ? '4択問題' : '一問一答';
+  let body = `${modeBar}<span class="qtype">${typeLabel}</span><div class="qtext">${q.q}</div>`;
+
+  if (q.type === 'mc') {
+    body += q.choices.map((c, i) => `<button class="choice" data-i="${i}">${c}</button>`).join('');
+  } else {
+    body += `<button class="reveal-btn" id="revealBtn">答えを見る</button><div id="qaAns"></div>`;
+  }
+  $('#qArea').innerHTML = body;
+
+  document.querySelectorAll('.modebar button').forEach(b =>
+    b.addEventListener('click', () => { state.mode = b.dataset.m; startQuiz(); }));
+
+  if (q.type === 'mc') {
+    document.querySelectorAll('.choice').forEach(b =>
+      b.addEventListener('click', () => answerMc(parseInt(b.dataset.i))));
+  } else {
+    $('#revealBtn').addEventListener('click', revealQa);
+  }
+}
+
+function answerMc(i) {
+  const q = state.questions[state.idx];
+  const btns = document.querySelectorAll('.choice');
+  btns.forEach((b, bi) => {
+    b.disabled = true;
+    if (bi === q.answer) b.classList.add('correct');
+    if (bi === i && i !== q.answer) b.classList.add('wrong');
+  });
+  const ok = i === q.answer;
+  if (ok) state.correct++; else state.wrong.push(q);
+  const exp = q.explain ? `<div class="explain">${q.explain}</div>` : '';
+  $('#qArea').insertAdjacentHTML('beforeend',
+    `<div class="answerbox"><div class="a">${ok ? '⭕️ 正解' : '❌ 不正解'}</div>${exp}</div>
+     <button class="btn" id="nextBtn">${state.idx + 1 < state.questions.length ? '次へ' : '結果を見る'}</button>`);
+  $('#nextBtn').addEventListener('click', next);
+}
+
+function revealQa() {
+  const q = state.questions[state.idx];
+  const exp = q.explain ? `<div class="explain">${q.explain}</div>` : '';
+  $('#qaAns').innerHTML = `<div class="answerbox"><div class="a">${q.answer}</div>${exp}</div>
+    <div class="selfgrade">
+      <button class="g-ng" id="gNg">わからなかった</button>
+      <button class="g-ok" id="gOk">わかった</button>
+    </div>`;
+  $('#revealBtn').disabled = true;
+  $('#gOk').addEventListener('click', () => { state.correct++; next(); });
+  $('#gNg').addEventListener('click', () => { state.wrong.push(q); next(); });
+}
+
+function next() {
+  state.idx++;
+  if (state.idx < state.questions.length) renderQuestion();
+  else finish();
+}
+
+// ---------- RESULT ----------
+function finish() {
+  const total = state.questions.length;
+  const c = state.correct;
+  $('#resTitle').textContent = state.topic.title;
+  $('#scoreText').innerHTML = `${c}<small> / ${total}</small>`;
+  const pct = Math.round(c / total * 100);
+  $('#scoreSub').textContent = `正答率 ${pct}%`;
+  // save (端末内)
+  localStorage.setItem('quiz_' + state.topic.id,
+    JSON.stringify({ correct: c, total, date: Date.now() }));
+  // send (スプレッドシートへ自動記録)
+  sendResult(c, total);
+  // wrong list
+  if (state.wrong.length) {
+    $('#wrongList').innerHTML = '<h2>復習（間違い・わからなかった問題）</h2>' +
+      state.wrong.map(q => `<div class="item">${q.q}<div class="a">→ ${q.type === 'mc' ? q.choices[q.answer] : q.answer}</div></div>`).join('');
+  } else {
+    $('#wrongList').innerHTML = '<p class="muted" style="text-align:center">全問正解！🎉</p>';
+  }
+  $('#backBtn').classList.add('hidden');
+  show('result');
+}
+
+function sendResult(c, total) {
+  const endpoint = window.RESULTS_ENDPOINT;
+  const statusEl = $('#logStatus');
+  if (!endpoint) { if (statusEl) statusEl.textContent = '（記録先は未設定：この端末内にのみ保存）'; return; }
+  const payload = {
+    topicId: state.topic.id,
+    topicTitle: state.topic.title,
+    mode: state.mode,
+    correct: c,
+    total: total,
+    wrong: state.wrong.map(q => q.q)
+  };
+  if (statusEl) statusEl.textContent = '結果を記録中…';
+  fetch(endpoint, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  }).then(() => {
+    if (statusEl) statusEl.textContent = '✅ 結果をスプレッドシートに記録しました';
+  }).catch(() => {
+    if (statusEl) statusEl.textContent = '⚠️ 記録の送信に失敗しました（端末内には保存済み）';
+  });
+}
+
+// ---------- NAV ----------
+function show(id) {
+  ['home', 'quiz', 'result'].forEach(s => $('#' + s).classList.toggle('hidden', s !== id));
+  window.scrollTo(0, 0);
+}
+$('#retryBtn').addEventListener('click', startQuiz);
+$('#homeBtn').addEventListener('click', renderHome);
+$('#backBtn').addEventListener('click', renderHome);
+
+loadTopics();
+</script>
+</body>
+</html>
