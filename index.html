@@ -114,6 +114,37 @@
   .wronglist .item .a { color: var(--sub); font-size: 13px; margin-top: 4px; }
   .hidden { display: none; }
   .err { background: #fef2f2; color: var(--ng); padding: 14px; border-radius: 10px; }
+
+  /* choose (学習 or クイズ) */
+  .bigbtn { display: block; width: 100%; text-align: left; background: #fff; border: 1.5px solid var(--line);
+            border-radius: 14px; padding: 18px 18px; margin-bottom: 12px; font-size: 17px; font-weight: 700; }
+  .bigbtn .sub { display: block; font-size: 13px; font-weight: 400; color: var(--sub); margin-top: 6px; }
+  .bigbtn .ic { font-size: 20px; margin-right: 8px; }
+
+  /* learn (学習ページ) */
+  #learnBody { font-size: 15px; line-height: 1.75; }
+  #learnBody h2 { font-size: 18px; margin: 26px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--brand); }
+  #learnBody h3 { font-size: 16px; margin: 18px 0 8px; color: var(--brand); }
+  #learnBody p { margin: 10px 0; }
+  #learnBody ul, #learnBody ol { margin: 10px 0; padding-left: 22px; }
+  #learnBody li { margin: 6px 0; }
+  #learnBody a { color: var(--brand); }
+  #learnBody .synced { font-size: 12px; color: var(--sub); margin: 0 0 14px; }
+  #learnBody .notionlink { margin-top: 28px; font-size: 14px; }
+  .callout { display: flex; gap: 10px; border-radius: 10px; padding: 12px 14px; margin: 14px 0; font-size: 14px; line-height: 1.7; }
+  .callout .ci { flex: none; }
+  .callout ul { margin: 8px 0 0; }
+  .c-gray { background: #f3f4f6; }
+  .c-blue { background: #eff6ff; }
+  .c-red { background: #fef2f2; }
+  .c-green { background: #ecfdf5; }
+  .c-yellow { background: #fefce8; }
+  /* 表は横スクロール（本文は横に溢れさせない） */
+  .tablewrap { overflow-x: auto; margin: 12px 0; -webkit-overflow-scrolling: touch; }
+  .tablewrap table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+  .tablewrap th, .tablewrap td { border: 1px solid var(--line); padding: 8px 10px; text-align: left;
+                                 vertical-align: top; min-width: 96px; }
+  .tablewrap th { background: #f8fafc; font-weight: 700; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -127,6 +158,17 @@
     <p class="muted">今日勉強したいトピックを1つ選んでください。</p>
     <input id="search" class="search" type="search" placeholder="🔍 検索（例：Na、ODS、糖尿病…）" autocomplete="off">
     <div id="topicList"></div>
+  </section>
+
+  <!-- CHOOSE (学習ページ or クイズ) -->
+  <section id="choose" class="hidden">
+    <div id="chooseBody"></div>
+  </section>
+
+  <!-- LEARN (学習ページ) -->
+  <section id="learn" class="hidden">
+    <div id="learnBody"></div>
+    <button class="btn ghost" id="learnQuizBtn" style="margin-top:26px">このトピックのクイズを解く</button>
   </section>
 
   <!-- START OPTIONS -->
@@ -229,14 +271,51 @@ function renderTopicList(q) {
     b.addEventListener('click', () => openTopic(b.dataset.id)));
 }
 
-// ---------- START (出題設定) ----------
+// ---------- CHOOSE (学習ページ or クイズ) ----------
 async function openTopic(id) {
   const t = state.topics.find(x => x.id === id);
   state.topic = t;
   const res = await fetch('topics/' + t.file + '?_=' + Date.now());
   state.allQuestions = (await res.json()).questions;
-  renderStart();
+  // 学習ページが無いトピックは、従来どおり出題設定へ直行する
+  if (t.learn) renderChoose(); else renderStart();
 }
+
+function renderChoose() {
+  const t = state.topic;
+  $('#appTitle').textContent = t.title;
+  $('#backBtn').classList.remove('hidden');
+  const ls = lastScore(t.id);
+  const meta = ls ? `前回 ${ls.correct}/${ls.total}` : '未受験';
+  $('#chooseBody').innerHTML = `
+    <h2>${t.title}</h2>
+    <p class="muted">読むか、解くかを選んでください。</p>
+    <button class="bigbtn" id="goLearn"><span class="ic">📖</span>学習ページを読む
+      <span class="sub">病態・観察・治療の要点をまとめたページ</span></button>
+    <button class="bigbtn" id="goQuiz"><span class="ic">✏️</span>クイズを解く
+      <span class="sub">${t.count}問 ・ ${meta}</span></button>`;
+  $('#goLearn').addEventListener('click', openLearn);
+  $('#goQuiz').addEventListener('click', renderStart);
+  show('choose');
+}
+
+// ---------- LEARN (学習ページ) ----------
+async function openLearn() {
+  const t = state.topic;
+  $('#appTitle').textContent = t.title;
+  $('#backBtn').classList.remove('hidden');
+  $('#learnBody').innerHTML = '<p class="muted">読み込み中…</p>';
+  show('learn');
+  try {
+    const res = await fetch('topics/' + t.learn + '?_=' + Date.now());
+    if (!res.ok) throw new Error(res.status);
+    $('#learnBody').innerHTML = await res.text();
+  } catch (e) {
+    $('#learnBody').innerHTML = '<div class="err">学習ページを読み込めませんでした。</div>';
+  }
+}
+
+// ---------- START (出題設定) ----------
 
 function renderStart() {
   const t = state.topic;
@@ -458,16 +537,20 @@ function sendResult(c, total) {
 // ---------- NAV ----------
 function show(id) {
   state.screen = id;
-  ['home', 'start', 'quiz', 'result'].forEach(s => $('#' + s).classList.toggle('hidden', s !== id));
+  ['home', 'choose', 'learn', 'start', 'quiz', 'result'].forEach(s => $('#' + s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
 }
 function goBack() {
+  // 学習ページ・出題設定からは選択画面へ（学習ページの無いトピックはホームへ）
   if (state.screen === 'quiz') renderStart();
+  else if (state.screen === 'learn') renderChoose();
+  else if (state.screen === 'start' && state.topic && state.topic.learn) renderChoose();
   else renderHome();
 }
 $('#retryBtn').addEventListener('click', startQuiz);
 $('#homeBtn').addEventListener('click', renderHome);
 $('#backBtn').addEventListener('click', goBack);
+$('#learnQuizBtn').addEventListener('click', renderStart);
 
 // クラウド（スプレッドシート）から状態を読み込み、端末間で共有する
 function loadCloudState() {

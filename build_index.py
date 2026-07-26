@@ -23,6 +23,8 @@ def main():
             continue
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
+        # <id>.learn.html があれば学習ページありとして一覧に載せる
+        learn = data["id"] + ".learn.html"
         topics.append({
             "id": data["id"],
             "title": data["title"],
@@ -31,6 +33,7 @@ def main():
             "provisional": data.get("provisional", False),
             "category": data.get("category", ""),
             "tags": data.get("tags", []),
+            "learn": learn if os.path.exists(os.path.join(TDIR, learn)) else "",
         })
 
     out = os.path.join(TDIR, "index.json")
@@ -40,7 +43,8 @@ def main():
     print(f"index.json を更新しました：{len(topics)} トピック")
     for t in topics:
         flag = "（仮）" if t["provisional"] else ""
-        print(f"  - {t['id']}: {t['title']} … {t['count']}問 {flag}")
+        learn = "＋学習ページ" if t["learn"] else "学習ページなし"
+        print(f"  - {t['id']}: {t['title']} … {t['count']}問 {learn} {flag}")
 
 
 if __name__ == "__main__":

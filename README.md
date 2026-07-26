@@ -1,14 +1,24 @@
 # 看護クイズ
 
 スマホのブラウザで開ける、看護学習用のクイズアプリ。
-トピックを1つ選んで、4択・一問一答形式で解く。結果はスプレッドシートに自動記録できる。
+トピックを1つ選ぶと「学習ページを読む」か「クイズを解く」かを選べる。結果はスプレッドシートに自動記録できる。
 
 ## 構成
 - `index.html` … アプリ本体（バニラJS・フレームワークなし）
 - `config.js` … 結果ログの送信先（Apps Script ウェブアプリURL）
 - `topics/index.json` … トピック一覧
 - `topics/*.json` … トピックごとの問題データ
+- `topics/*.learn.html` … トピックごとの学習ページ（任意）
 - `apps-script/` … 結果をスプレッドシートに記録する Google Apps Script とセットアップ手順
+
+## 画面の流れ
+```
+ホーム（トピック一覧）
+  └─ トピックを選ぶ
+       ├─ 📖 学習ページを読む
+       └─ ✏️ クイズを解く → 出題設定 → 出題 → 結果
+```
+学習ページが無いトピックは、選択画面を出さずに出題設定へ直行する。
 
 ## トピックの追加（かんたん）
 1. `topics/<id>.json` を作成（既存ファイルと同じ形式。`id` / `title` / `provisional` / `questions` を含める）
@@ -43,6 +53,25 @@
 - 正解の位置は空文字 `""` にしておく（表示されないため）
 - `why` を書かなければ従来どおり `explain` だけが出る（既存データはそのままで動く）
 - 「なぜ間違いか」は正答の理由と別物なので、`explain` の言い換えにならないよう書く
+
+## 学習ページ（`topics/<id>.learn.html`）
+Notionの学習ページの中身をアプリ内で読めるようにするためのファイル。
+
+- ファイル名は `<トピックのid>.learn.html`（例：`dka.learn.html`）
+- `<body>` の中身だけを書いた**断片**（`<html>` や `<style>` は不要）。`index.html` 側のCSSで整形される
+- 置いておけば `build_index.py` が自動で検出し、`index.json` に `"learn": "dka.learn.html"` が入る。**手で書く必要はない**
+- 無ければ選択画面は出ず、トピックをタップすると出題設定に直行する
+
+使えるクラス（`index.html` にスタイル定義あり）：
+
+| 書き方 | 用途 |
+|---|---|
+| `<div class="callout c-blue"><span class="ci">🧪</span><div>本文</div></div>` | Notionのコールアウト。色は `c-gray` / `c-blue` / `c-red` / `c-green` / `c-yellow` |
+| `<div class="tablewrap"><table>…</table></div>` | 表。**必ず `tablewrap` で包む**（スマホで横スクロールさせるため） |
+
+### Notionを更新したとき
+自動では同期されない。Notion側を書き換えたら、その内容を `topics/<id>.learn.html` に反映して commit・push する。
+先頭の `<p class="synced">` に取り込み日を書いておくと、いつ時点の内容か画面で分かる。
 
 ## 結果の自動記録
 `apps-script/SETUP.md` を参照。
