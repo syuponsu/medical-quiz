@@ -101,6 +101,9 @@
   .answerbox { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
   .answerbox .a { font-weight: 700; }
   .explain { color: var(--sub); font-size: 14px; margin-top: 8px; }
+  .why { background: #fef2f2; border-left: 3px solid var(--ng); border-radius: 8px;
+         padding: 10px 12px; margin-top: 10px; font-size: 14px; color: #7f1d1d; }
+  .why .picked { font-weight: 700; font-size: 13px; display: block; margin-bottom: 4px; }
 
   /* result */
   .score { font-size: 44px; font-weight: 800; color: var(--brand); text-align: center; margin: 12px 0 4px; }
@@ -327,6 +330,14 @@ function renderQuestion() {
   }
 }
 
+// 選んだ選択肢がなぜ違うのかの解説。q.why は choices と同じ並びの配列（正解の位置は空でよい）
+function whyHtml(q, picked) {
+  if (typeof picked !== 'number' || picked === q.answer) return '';
+  const text = Array.isArray(q.why) ? q.why[picked] : '';
+  if (!text) return '';
+  return `<div class="why"><span class="picked">あなたの答え：${q.choices[picked]}</span>${text}</div>`;
+}
+
 function answerMc(i) {
   const q = state.questions[state.idx];
   const btns = document.querySelectorAll('.choice');
@@ -338,6 +349,8 @@ function answerMc(i) {
   const ok = i === q.answer;
   if (ok) state.correct++;
   const exp = q.explain ? `<div class="explain">${q.explain}</div>` : '';
+  // 誤答時は「選んだ肢がなぜ違うのか」を出す（why が無いデータでは従来どおり explain のみ）
+  const why = ok ? '' : whyHtml(q, i);
   const nextLabel = state.idx + 1 < state.questions.length ? '次へ' : '結果を見る';
   let action;
   if (ok) {
@@ -348,12 +361,12 @@ function answerMc(i) {
         <button class="g-ok" id="cSure">💪 自信あり（${nextLabel}）</button>
       </div>`;
   } else {
-    state.review.push({ question: q, reason: 'wrong' });
+    state.review.push({ question: q, reason: 'wrong', picked: i });
     markWeak(state.topic.id, q, true);
     action = `<button class="btn" id="nextBtn">${nextLabel}</button>`;
   }
   $('#qArea').insertAdjacentHTML('beforeend',
-    `<div class="answerbox"><div class="a">${ok ? '⭕️ 正解' : '❌ 不正解'}</div>${exp}</div>${action}`);
+    `<div class="answerbox"><div class="a">${ok ? '⭕️ 正解' : '❌ 不正解'}</div>${why}${exp}</div>${action}`);
   if (ok) {
     $('#cSure').addEventListener('click', () => { markWeak(state.topic.id, q, false); next(); });
     $('#cUnsure').addEventListener('click', () => { state.review.push({ question: q, reason: 'unsure' }); markWeak(state.topic.id, q, true); next(); });
@@ -405,7 +418,9 @@ function finish() {
         const q = r.question;
         const ans = q.type === 'mc' ? q.choices[q.answer] : q.answer;
         const tag = r.reason === 'wrong' ? '❌' : '🤔';
-        return `<div class="item">${tag} ${q.q}<div class="a">→ ${ans}</div></div>`;
+        const why = whyHtml(q, r.picked);
+        const exp = q.explain ? `<div class="explain">${q.explain}</div>` : '';
+        return `<div class="item">${tag} ${q.q}<div class="a">→ ${ans}</div>${why}${exp}</div>`;
       }).join('');
   } else {
     $('#wrongList').innerHTML = '<p class="muted" style="text-align:center">要復習なし！完璧です🎉</p>';
