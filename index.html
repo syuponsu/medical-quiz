@@ -384,7 +384,24 @@ function filterQuestions() {
   // 出題数を絞る
   const n = parseInt(state.count);
   if (!isNaN(n)) qs = qs.slice(0, n);
-  return qs;
+  return qs.map(shuffleChoices);
+}
+
+// 4択の選択肢の並びを毎回入れ替える（「答えは3番目」と位置で覚えてしまうのを防ぐ）。
+// choices と why を同じ並びで入れ替え、answer の位置も付け替えた新しいオブジェクトを返す。
+// 元データ（state.allQuestions）は書き換えない。
+function shuffleChoices(q) {
+  if (q.type !== 'mc' || !Array.isArray(q.choices)) return q;
+  const order = q.choices.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return Object.assign({}, q, {
+    choices: order.map(i => q.choices[i]),
+    why: Array.isArray(q.why) ? order.map(i => q.why[i]) : q.why,
+    answer: order.indexOf(q.answer),
+  });
 }
 
 function startQuiz() {
