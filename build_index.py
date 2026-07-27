@@ -23,7 +23,8 @@ def main():
             continue
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        # <id>.learn.html があれば学習ページありとして一覧に載せる
+        # 読むのは同梱の <id>.learn.html が主。
+        # notion は「元ページを直したいとき」の二次動線（learn.html が無ければ直接開く）
         learn = data["id"] + ".learn.html"
         topics.append({
             "id": data["id"],
@@ -33,6 +34,7 @@ def main():
             "provisional": data.get("provisional", False),
             "category": data.get("category", ""),
             "tags": data.get("tags", []),
+            "notion": data.get("notion", ""),
             "learn": learn if os.path.exists(os.path.join(TDIR, learn)) else "",
         })
 
@@ -43,7 +45,12 @@ def main():
     print(f"index.json を更新しました：{len(topics)} トピック")
     for t in topics:
         flag = "（仮）" if t["provisional"] else ""
-        learn = "＋学習ページ" if t["learn"] else "学習ページなし"
+        if t["learn"]:
+            learn = "＋学習ページ" + ("／Notionリンクあり" if t["notion"] else "")
+        elif t["notion"]:
+            learn = "＋学習ページ(Notionを直接開く)"
+        else:
+            learn = "学習ページなし"
         print(f"  - {t['id']}: {t['title']} … {t['count']}問 {learn} {flag}")
 
 

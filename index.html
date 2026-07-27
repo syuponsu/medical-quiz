@@ -277,9 +277,12 @@ async function openTopic(id) {
   state.topic = t;
   const res = await fetch('topics/' + t.file + '?_=' + Date.now());
   state.allQuestions = (await res.json()).questions;
-  // 学習ページが無いトピックは、従来どおり出題設定へ直行する
-  if (t.learn) renderChoose(); else renderStart();
+  // 学習ページ（Notion または同梱HTML）が無いトピックは、出題設定へ直行する
+  if (hasLearn(t)) renderChoose(); else renderStart();
 }
+
+// 読むのはアプリ内の <id>.learn.html が主。notion は「元ページへ飛ぶ」二次動線
+function hasLearn(t) { return !!(t && (t.learn || t.notion)); }
 
 function renderChoose() {
   const t = state.topic;
@@ -287,13 +290,21 @@ function renderChoose() {
   $('#backBtn').classList.remove('hidden');
   const ls = lastScore(t.id);
   const meta = ls ? `前回 ${ls.correct}/${ls.total}` : '未受験';
+  const learnSub = t.learn
+    ? '病態・観察・治療の要点をまとめたページ'
+    : 'Notionの学習ページを開く（別タブ）';
+  // 元ページを直したいときのための二次動線（読むのはアプリ内が主）
+  const notionLink = (t.learn && t.notion)
+    ? `<p class="notionlink"><a href="${t.notion}" target="_blank" rel="noopener">Notionの元ページを開く →</a></p>`
+    : '';
   $('#chooseBody').innerHTML = `
     <h2>${t.title}</h2>
     <p class="muted">読むか、解くかを選んでください。</p>
     <button class="bigbtn" id="goLearn"><span class="ic">📖</span>学習ページを読む
-      <span class="sub">病態・観察・治療の要点をまとめたページ</span></button>
+      <span class="sub">${learnSub}</span></button>
     <button class="bigbtn" id="goQuiz"><span class="ic">✏️</span>クイズを解く
-      <span class="sub">${t.count}問 ・ ${meta}</span></button>`;
+      <span class="sub">${t.count}問 ・ ${meta}</span></button>
+    ${notionLink}`;
   $('#goLearn').addEventListener('click', openLearn);
   $('#goQuiz').addEventListener('click', renderStart);
   show('choose');
@@ -302,6 +313,8 @@ function renderChoose() {
 // ---------- LEARN (学習ページ) ----------
 async function openLearn() {
   const t = state.topic;
+  // アプリ内に学習ページが無いトピックだけ、Notionの元ページを開く
+  if (!t.learn && t.notion) { window.open(t.notion, '_blank', 'noopener'); return; }
   $('#appTitle').textContent = t.title;
   $('#backBtn').classList.remove('hidden');
   $('#learnBody').innerHTML = '<p class="muted">読み込み中…</p>';
@@ -544,7 +557,7 @@ function goBack() {
   // 学習ページ・出題設定からは選択画面へ（学習ページの無いトピックはホームへ）
   if (state.screen === 'quiz') renderStart();
   else if (state.screen === 'learn') renderChoose();
-  else if (state.screen === 'start' && state.topic && state.topic.learn) renderChoose();
+  else if (state.screen === 'start' && hasLearn(state.topic)) renderChoose();
   else renderHome();
 }
 $('#retryBtn').addEventListener('click', startQuiz);

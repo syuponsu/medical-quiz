@@ -20,6 +20,7 @@
         "内分泌",
         "代謝"
       ],
+      "notion": "https://app.notion.com/p/3a9b7422f2c681fa9119fe5d41f61729",
       "learn": "dka.learn.html"
     },
     {
@@ -48,6 +49,7 @@
         "脳神経",
         "脳卒中"
       ],
+      "notion": "https://app.notion.com/p/3a9b7422f2c68194925df94629aa0e1d",
       "learn": "ich.learn.html"
     }
   ]

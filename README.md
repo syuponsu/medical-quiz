@@ -8,7 +8,7 @@
 - `config.js` … 結果ログの送信先（Apps Script ウェブアプリURL）
 - `topics/index.json` … トピック一覧
 - `topics/*.json` … トピックごとの問題データ
-- `topics/*.learn.html` … トピックごとの学習ページ（任意）
+- `topics/*.learn.html` … アプリ内に同梱する学習ページ（旧方式・任意）
 - `apps-script/` … 結果をスプレッドシートに記録する Google Apps Script とセットアップ手順
 
 ## 画面の流れ
@@ -21,7 +21,7 @@
 学習ページが無いトピックは、選択画面を出さずに出題設定へ直行する。
 
 ## トピックの追加（かんたん）
-1. `topics/<id>.json` を作成（既存ファイルと同じ形式。`id` / `title` / `provisional` / `questions` を含める）
+1. `topics/<id>.json` を作成（既存ファイルと同じ形式。`id` / `title` / `provisional` / `notion` / `questions` を含める）
 2. `python3 build_index.py` を実行 → `topics/index.json` が自動生成される（手で編集不要）
 3. commit して push すれば公開版に反映される
 
@@ -31,6 +31,7 @@
   "id": "topicのID",
   "title": "画面に出す名前",
   "provisional": false,        // 仮作成なら true（一覧に「※仮作成」と表示）
+  "notion": "https://app.notion.com/p/…",  // 学習ページ（Notion）のURL
   "category": "内分泌・代謝",   // 分野（Notionの「領域」に対応）。検索対象
   "tags": ["Na", "ODS", "SIADH"], // 関連キーワード。検索でヒットしやすくする
   "questions": [
@@ -56,6 +57,14 @@
 
 ## 学習ページ（`topics/<id>.learn.html`）
 Notionの学習ページの中身をアプリ内で読めるようにするためのファイル。
+
+**読むのはアプリ内が主**。スマホでは、編集できない＝長押しで誤って編集が始まらないこと、
+文字組みが読みやすいことから、Notionを直接開くより読みやすいため。
+
+`notion` は「元ページを直したいとき」の二次動線として、選択画面に小さなリンクで出る。
+`.learn.html` が無いトピックでは、「学習ページを読む」がそのままNotionを開く動作になる。
+
+- **このリポジトリは公開**。拾ってきたCT画像などをここに置かないこと（私的使用の例外は公開物には使えない）。画像を扱うなら非公開のNotion側に置く
 
 - ファイル名は `<トピックのid>.learn.html`（例：`dka.learn.html`）
 - `<body>` の中身だけを書いた**断片**（`<html>` や `<style>` は不要）。`index.html` 側のCSSで整形される
