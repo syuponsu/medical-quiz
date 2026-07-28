@@ -67,7 +67,7 @@
       "id": "ich",
       "title": "脳出血（急性期）",
       "file": "ich.json",
-      "count": 19,
+      "count": 22,
       "provisional": false,
       "category": "脳神経",
       "tags": [
@@ -88,6 +88,7 @@
         "瞳孔",
         "意識レベル",
         "JCS",
+        "GCS",
         "脳神経",
         "脳卒中"
       ],
