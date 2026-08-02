@@ -130,6 +130,33 @@
       "learn": "pivlaz.learn.html"
     },
     {
+      "id": "refeeding",
+      "title": "リフィーディング症候群",
+      "file": "refeeding.json",
+      "count": 21,
+      "provisional": false,
+      "category": "内分泌・代謝",
+      "tags": [
+        "リフィーディング",
+        "再栄養",
+        "低リン血症",
+        "低カリウム血症",
+        "低マグネシウム血症",
+        "チアミン",
+        "栄養",
+        "電解質",
+        "不整脈",
+        "呼吸筋",
+        "NICE",
+        "ASPEN",
+        "AuSPEN",
+        "内分泌",
+        "代謝"
+      ],
+      "notion": "https://app.notion.com/p/3b0b7422f2c6810aaf7bf1b44e0e378a",
+      "learn": ""
+    },
+    {
       "id": "sah",
       "title": "くも膜下出血（急性期）",
       "file": "sah.json",
